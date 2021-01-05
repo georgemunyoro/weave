@@ -104,11 +104,11 @@ func (t *Template) ExprCode(expr string) string {
 			temp = append(temp, fmt.Sprintf("%#v", dots[i]))
 		}
 
-		code = "string((" + code + ").(map[string]interface{})"
+		code = "(fmt.Sprintf(\"%v\", (" + code + ").(map[string]interface{})"
 		for i := 0; i < len(dots)-1; i++ {
 			code += "[" + fmt.Sprintf("%#v", dots[i]) + "]"
 		}
-		code += ")"
+		code += "))"
 	} else {
 		t.Variable(expr, &t.AllVars)
 		code = "c_" + expr
@@ -136,6 +136,7 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 	code.IndentLevel += 1
 	code.AddLine("\"strings\"")
 	code.AddLine("\"encoding/json\"")
+	code.AddLine("\"fmt\"")
 	code.IndentLevel -= 1
 	code.AddLine(")")
 	code.AddLine("")
@@ -170,8 +171,11 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 	}
 
 	tokens := t.extractTokens()
+
 	for i := 0; i < len(tokens); i++ {
 		token := tokens[i]
+
+		// fmt.Println(fmt.Sprint(i) + token)
 
 		if token[:2] == "{#" {
 			continue
@@ -210,9 +214,7 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 				buffered = append(buffered, expr)
 			}
 		} else {
-			if len(token) > 0 {
-				buffered = append(buffered, fmt.Sprintf("%#v", token))
-			}
+			buffered = append(buffered, fmt.Sprintf("%#v", token))
 		}
 	}
 
@@ -279,22 +281,26 @@ func RenderFile(filename string, context map[string]interface{}) string {
 }
 
 func main() {
-	// context := map[string]interface{}{
-	// 	"user_name": "George Munyoro",
-	// 	"product_list": []interface{}{
-	// 		map[string]interface{}{
-	// 			"name":  "HDMI Cable",
-	// 			"price": 100,
-	// 		},
-	// 	},
-	// }
+	context := map[string]interface{}{
+		"user_name": "George Munyoro",
+		"product_list": []interface{}{
+			map[string]interface{}{
+				"name":  "HDMI Cable",
+				"price": 100,
+			},
+		},
+	}
+
+	// RenderFile("../ssg/pages/example.md", context)
+
+	fmt.Println(RenderFile("../ssg/pages/example.md", context))
 
 	// err := ioutil.WriteFile("./test.go", []byte(RenderFile("../ssg/pages/example.md", context)), 0666)
 	// if err != nil {
 	// 	fmt.Println(err)
 	// }
 
-	x := c_render_example_md()
+	// x := c_render_example_md()
 
-	fmt.Println(x)
+	// fmt.Println(x)
 }
