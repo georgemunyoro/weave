@@ -106,7 +106,7 @@ func (t *Template) ExprCode(expr string) string {
 
 		code = "(fmt.Sprintf(\"%v\", (" + code + ").(map[string]interface{})"
 		for i := 0; i < len(dots)-1; i++ {
-			code += "[" + fmt.Sprintf("%#v", dots[i]) + "]"
+			code += "[" + fmt.Sprintf("%#v", dots[1:][i]) + "]"
 		}
 		code += "))"
 	} else {
@@ -158,7 +158,7 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 	opStack := []string{}
 
 	flushOutput := func() {
-		for i := 0; i < len(buffered)-1; i++ {
+		for i := 0; i < len(buffered); i++ {
 			if len(buffered[i]) > 0 {
 				if buffered[i][:2] == "c_" {
 					buffered[i] = buffered[i] + ".(string)"
@@ -174,8 +174,6 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 
 	for i := 0; i < len(tokens); i++ {
 		token := tokens[i]
-
-		// fmt.Println(fmt.Sprint(i) + token)
 
 		if token[:2] == "{#" {
 			continue
@@ -227,7 +225,7 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 		return false
 	}
 
-	for i := 0; i < len(t.AllVars)-1; i++ {
+	for i := 0; i < len(t.AllVars); i++ {
 		if !contains(t.LoopVars, "c_"+t.AllVars[i]) {
 			(*varsCode).(*CodeBuilder).AddLine("c_" + t.AllVars[i] + " := context[\"" + t.AllVars[i] + "\"]")
 		}
@@ -293,14 +291,14 @@ func main() {
 
 	// RenderFile("../ssg/pages/example.md", context)
 
-	fmt.Println(RenderFile("../ssg/pages/example.md", context))
+	// fmt.Println(RenderFile("../ssg/pages/example.md", context))
 
-	// err := ioutil.WriteFile("./test.go", []byte(RenderFile("../ssg/pages/example.md", context)), 0666)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
+	err := ioutil.WriteFile("./test.go", []byte(RenderFile("../ssg/pages/example.md", context)), 0666)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	// x := c_render_example_md()
+	x := c_render_example_md()
 
-	// fmt.Println(x)
+	fmt.Println(x)
 }
