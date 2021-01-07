@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"encoding/json"
@@ -130,17 +130,6 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 		fmt.Println(err)
 	}
 
-	code.AddLine("package main")
-	code.AddLine("")
-	code.AddLine("import (")
-	code.IndentLevel += 1
-	code.AddLine("\"strings\"")
-	code.AddLine("\"encoding/json\"")
-	code.AddLine("\"fmt\"")
-	code.IndentLevel -= 1
-	code.AddLine(")")
-	code.AddLine("")
-
 	code.AddLine("func " + outputFunctionName + "() string {")
 	code.Indent()
 
@@ -225,9 +214,11 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 		return false
 	}
 
+	var done []string
 	for i := 0; i < len(t.AllVars); i++ {
-		if !contains(t.LoopVars, "c_"+t.AllVars[i]) {
+		if !contains(t.LoopVars, "c_"+t.AllVars[i]) && !contains(done, "c_"+t.AllVars[i]) {
 			(*varsCode).(*CodeBuilder).AddLine("c_" + t.AllVars[i] + " := context[\"" + t.AllVars[i] + "\"]")
+			done = append(done, "c_"+t.AllVars[i])
 		}
 	}
 
@@ -262,6 +253,14 @@ func (t *Template) Render(outputFunctionName string) string {
 	return output
 }
 
+func RenderTemplateString(templateString string, renderFunctionName string, context map[string]interface{}) string {
+	t := Template{
+		Context:        context,
+		TemplateString: templateString,
+	}
+	return t.Render("c_render_" + renderFunctionName)
+}
+
 func RenderFile(filename string, context map[string]interface{}) string {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -269,36 +268,32 @@ func RenderFile(filename string, context map[string]interface{}) string {
 		return ""
 	}
 
-	t := &Template{
-		Context:        context,
-		TemplateString: string(data),
-	}
-
 	temp := strings.Split(filename, "/")
-	return t.Render("c_render_" + strings.Replace(temp[len(temp)-1], ".", "_", -1))
+	renderFunctionName := "c_render_" + strings.Replace(temp[len(temp)-1], ".", "_", -1)
+	return RenderTemplateString(string(data), renderFunctionName, context)
 }
 
-func main() {
-	context := map[string]interface{}{
-		"user_name": "George Munyoro",
-		"product_list": []interface{}{
-			map[string]interface{}{
-				"name":  "HDMI Cable",
-				"price": 100,
-			},
-		},
-	}
+// func main() {
+// 	context := map[string]interface{}{
+// 		"user_name": "George Munyoro",
+// 		"product_list": []interface{}{
+// 			map[string]interface{}{
+// 				"name":  "HDMI Cable",
+// 				"price": 100,
+// 			},
+// 		},
+// 	}
 
-	// RenderFile("../ssg/pages/example.md", context)
+// 	// RenderFile("../ssg/pages/example.md", context)
 
-	// fmt.Println(RenderFile("../ssg/pages/example.md", context))
+// 	// fmt.Println(RenderFile("../ssg/pages/example.md", context))
 
-	err := ioutil.WriteFile("./test.go", []byte(RenderFile("../ssg/pages/example.md", context)), 0666)
-	if err != nil {
-		fmt.Println(err)
-	}
+// 	err := ioutil.WriteFile("./test.go", []byte(RenderFile("../ssg/pages/example.md", context)), 0666)
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
 
-	x := c_render_example_md()
+// 	x := c_render_example_md()
 
-	fmt.Println(x)
-}
+// 	fmt.Println(x)
+// }
