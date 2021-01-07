@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"encoding/json"
@@ -14,6 +14,38 @@ type Template struct {
 	AllVars        []string
 	LoopVars       []string
 	Context        map[string]interface{}
+}
+
+type CodeBuilder struct {
+	IndentLevel int
+	Output      []interface{}
+}
+
+func (c *CodeBuilder) AddLine(text string) {
+	currentLine := ""
+	for i := 0; i < c.IndentLevel; i++ {
+		currentLine += "\t"
+	}
+	currentLine += text + "\n"
+	c.Output = append(c.Output, currentLine)
+}
+
+func (c *CodeBuilder) Indent() {
+	c.IndentLevel += 1
+}
+
+func (c *CodeBuilder) Dedent() {
+	c.IndentLevel -= 1
+	c.AddLine("}\n")
+}
+
+func (c *CodeBuilder) AddSection() *interface{} {
+	section := &CodeBuilder{
+		IndentLevel: c.IndentLevel,
+	}
+
+	c.Output = append(c.Output, section)
+	return &c.Output[len(c.Output)-1]
 }
 
 func pop(alist *[]string) string {
@@ -53,45 +85,6 @@ func (t *Template) extractTokens() []string {
 	return allTokens
 }
 
-// ============ ==== ======= ==============
-// ============ Code Builder ==============
-// ============ ==== ======= ==============
-
-type CodeBuilder struct {
-	IndentLevel int
-	Output      []interface{}
-}
-
-func (c *CodeBuilder) AddLine(text string) {
-	currentLine := ""
-	for i := 0; i < c.IndentLevel; i++ {
-		currentLine += "\t"
-	}
-	currentLine += text + "\n"
-	c.Output = append(c.Output, currentLine)
-}
-
-func (c *CodeBuilder) Indent() {
-	c.IndentLevel += 1
-}
-
-func (c *CodeBuilder) Dedent() {
-	c.IndentLevel -= 1
-	c.AddLine("}\n")
-}
-
-func (c *CodeBuilder) AddSection() *interface{} {
-	section := &CodeBuilder{
-		IndentLevel: c.IndentLevel,
-	}
-
-	c.Output = append(c.Output, section)
-	return &c.Output[len(c.Output)-1]
-}
-
-// ============ ==== ======= ==============
-// ============ ==== ======= ==============
-
 func (t *Template) ExprCode(expr string) string {
 	code := ""
 	if strings.Contains(expr, "|") {
@@ -104,11 +97,24 @@ func (t *Template) ExprCode(expr string) string {
 			temp = append(temp, fmt.Sprintf("%#v", dots[i]))
 		}
 
-		code = "(fmt.Sprintf(\"%v\", (" + code + ").(map[string]interface{})"
-		for i := 0; i < len(dots)-1; i++ {
-			code += "[" + fmt.Sprintf("%#v", dots[i]) + "]"
+		x := code
+		code = "(fmt.Sprintf(\"%v\", ("
+
+		for i := 0; i < len(dots)-2; i++ {
+			code += "("
 		}
+
+		code += x + ").(map[string]interface{})"
+
+		for i := 0; i < len(dots)-1; i++ {
+			code += "[" + fmt.Sprintf("%#v", dots[1:][i]) + "]"
+			if i+1 != len(dots)-1 {
+				code += ").(map[string]interface{})"
+			}
+		}
+
 		code += "))"
+
 	} else {
 		t.Variable(expr, &t.AllVars)
 		code = "c_" + expr
@@ -130,17 +136,6 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 		fmt.Println(err)
 	}
 
-	code.AddLine("package main")
-	code.AddLine("")
-	code.AddLine("import (")
-	code.IndentLevel += 1
-	code.AddLine("\"strings\"")
-	code.AddLine("\"encoding/json\"")
-	code.AddLine("\"fmt\"")
-	code.IndentLevel -= 1
-	code.AddLine(")")
-	code.AddLine("")
-
 	code.AddLine("func " + outputFunctionName + "() string {")
 	code.Indent()
 
@@ -158,7 +153,7 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 	opStack := []string{}
 
 	flushOutput := func() {
-		for i := 0; i < len(buffered)-1; i++ {
+		for i := 0; i < len(buffered); i++ {
 			if len(buffered[i]) > 0 {
 				if buffered[i][:2] == "c_" {
 					buffered[i] = buffered[i] + ".(string)"
@@ -174,8 +169,6 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 
 	for i := 0; i < len(tokens); i++ {
 		token := tokens[i]
-
-		// fmt.Println(fmt.Sprint(i) + token)
 
 		if token[:2] == "{#" {
 			continue
@@ -227,9 +220,11 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 		return false
 	}
 
-	for i := 0; i < len(t.AllVars)-1; i++ {
-		if !contains(t.LoopVars, "c_"+t.AllVars[i]) {
+	var done []string
+	for i := 0; i < len(t.AllVars); i++ {
+		if !contains(t.LoopVars, "c_"+t.AllVars[i]) && !contains(done, "c_"+t.AllVars[i]) {
 			(*varsCode).(*CodeBuilder).AddLine("c_" + t.AllVars[i] + " := context[\"" + t.AllVars[i] + "\"]")
+			done = append(done, "c_"+t.AllVars[i])
 		}
 	}
 
@@ -264,6 +259,14 @@ func (t *Template) Render(outputFunctionName string) string {
 	return output
 }
 
+func RenderTemplateString(templateString string, renderFunctionName string, context map[string]interface{}) string {
+	t := Template{
+		Context:        context,
+		TemplateString: templateString,
+	}
+	return t.Render("c_render_" + renderFunctionName)
+}
+
 func RenderFile(filename string, context map[string]interface{}) string {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -271,36 +274,7 @@ func RenderFile(filename string, context map[string]interface{}) string {
 		return ""
 	}
 
-	t := &Template{
-		Context:        context,
-		TemplateString: string(data),
-	}
-
 	temp := strings.Split(filename, "/")
-	return t.Render("c_render_" + strings.Replace(temp[len(temp)-1], ".", "_", -1))
-}
-
-func main() {
-	context := map[string]interface{}{
-		"user_name": "George Munyoro",
-		"product_list": []interface{}{
-			map[string]interface{}{
-				"name":  "HDMI Cable",
-				"price": 100,
-			},
-		},
-	}
-
-	// RenderFile("../ssg/pages/example.md", context)
-
-	fmt.Println(RenderFile("../ssg/pages/example.md", context))
-
-	// err := ioutil.WriteFile("./test.go", []byte(RenderFile("../ssg/pages/example.md", context)), 0666)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// x := c_render_example_md()
-
-	// fmt.Println(x)
+	renderFunctionName := "c_render_" + strings.Replace(temp[len(temp)-1], ".", "_", -1)
+	return RenderTemplateString(string(data), renderFunctionName, context)
 }
