@@ -98,7 +98,7 @@ func (t *Template) ExprCode(expr string) string {
 		}
 
 		x := code
-		code = "(fmt.Sprintf(\"%v\", ("
+		code = "("
 
 		for i := 0; i < len(dots)-2; i++ {
 			code += "("
@@ -106,14 +106,14 @@ func (t *Template) ExprCode(expr string) string {
 
 		code += x + ").(map[string]interface{})"
 
-		for i := 0; i < len(dots)-1; i++ {
+		for i := 0; i < len(dots)-2; i++ {
 			code += "[" + fmt.Sprintf("%#v", dots[1:][i]) + "]"
 			if i+1 != len(dots)-1 {
 				code += ").(map[string]interface{})"
 			}
 		}
 
-		code += "))"
+		code = "reflect.ValueOf(" + code + ").MapIndex(reflect.ValueOf(\"" + dots[len(dots)-1] + "\")).Interface()"
 
 	} else {
 		t.Variable(expr, &t.AllVars)
@@ -155,8 +155,8 @@ func (t *Template) Compile(outputFunctionName string) CodeBuilder {
 	flushOutput := func() {
 		for i := 0; i < len(buffered); i++ {
 			if len(buffered[i]) > 0 {
-				if buffered[i][:2] == "c_" {
-					buffered[i] = buffered[i] + ".(string)"
+				if buffered[i][len(buffered[i])-12:] == ".Interface()" {
+					buffered[i] += ".(string)"
 				}
 				code.AddLine("result = append(result, " + buffered[i] + ")")
 			}
