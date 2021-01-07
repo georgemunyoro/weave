@@ -272,28 +272,3 @@ func RenderFile(filename string, context map[string]interface{}) string {
 	renderFunctionName := "c_render_" + strings.Replace(temp[len(temp)-1], ".", "_", -1)
 	return RenderTemplateString(string(data), renderFunctionName, context)
 }
-
-// func main() {
-// 	context := map[string]interface{}{
-// 		"user_name": "George Munyoro",
-// 		"product_list": []interface{}{
-// 			map[string]interface{}{
-// 				"name":  "HDMI Cable",
-// 				"price": 100,
-// 			},
-// 		},
-// 	}
-
-// 	// RenderFile("../ssg/pages/example.md", context)
-
-// 	// fmt.Println(RenderFile("../ssg/pages/example.md", context))
-
-// 	err := ioutil.WriteFile("./test.go", []byte(RenderFile("../ssg/pages/example.md", context)), 0666)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 	}
-
-// 	x := c_render_example_md()
-
-// 	fmt.Println(x)
-// }
