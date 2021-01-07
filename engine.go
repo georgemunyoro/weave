@@ -97,11 +97,24 @@ func (t *Template) ExprCode(expr string) string {
 			temp = append(temp, fmt.Sprintf("%#v", dots[i]))
 		}
 
-		code = "(fmt.Sprintf(\"%v\", (" + code + ").(map[string]interface{})"
+		x := code
+		code = "(fmt.Sprintf(\"%v\", ("
+
+		for i := 0; i < len(dots)-2; i++ {
+			code += "("
+		}
+
+		code += x + ").(map[string]interface{})"
+
 		for i := 0; i < len(dots)-1; i++ {
 			code += "[" + fmt.Sprintf("%#v", dots[1:][i]) + "]"
+			if i+1 != len(dots)-1 {
+				code += ").(map[string]interface{})"
+			}
 		}
+
 		code += "))"
+
 	} else {
 		t.Variable(expr, &t.AllVars)
 		code = "c_" + expr
