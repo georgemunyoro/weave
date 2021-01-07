@@ -16,6 +16,38 @@ type Template struct {
 	Context        map[string]interface{}
 }
 
+type CodeBuilder struct {
+	IndentLevel int
+	Output      []interface{}
+}
+
+func (c *CodeBuilder) AddLine(text string) {
+	currentLine := ""
+	for i := 0; i < c.IndentLevel; i++ {
+		currentLine += "\t"
+	}
+	currentLine += text + "\n"
+	c.Output = append(c.Output, currentLine)
+}
+
+func (c *CodeBuilder) Indent() {
+	c.IndentLevel += 1
+}
+
+func (c *CodeBuilder) Dedent() {
+	c.IndentLevel -= 1
+	c.AddLine("}\n")
+}
+
+func (c *CodeBuilder) AddSection() *interface{} {
+	section := &CodeBuilder{
+		IndentLevel: c.IndentLevel,
+	}
+
+	c.Output = append(c.Output, section)
+	return &c.Output[len(c.Output)-1]
+}
+
 func pop(alist *[]string) string {
 	f := len(*alist)
 	rv := (*alist)[f-1]
@@ -52,45 +84,6 @@ func (t *Template) extractTokens() []string {
 
 	return allTokens
 }
-
-// ============ ==== ======= ==============
-// ============ Code Builder ==============
-// ============ ==== ======= ==============
-
-type CodeBuilder struct {
-	IndentLevel int
-	Output      []interface{}
-}
-
-func (c *CodeBuilder) AddLine(text string) {
-	currentLine := ""
-	for i := 0; i < c.IndentLevel; i++ {
-		currentLine += "\t"
-	}
-	currentLine += text + "\n"
-	c.Output = append(c.Output, currentLine)
-}
-
-func (c *CodeBuilder) Indent() {
-	c.IndentLevel += 1
-}
-
-func (c *CodeBuilder) Dedent() {
-	c.IndentLevel -= 1
-	c.AddLine("}\n")
-}
-
-func (c *CodeBuilder) AddSection() *interface{} {
-	section := &CodeBuilder{
-		IndentLevel: c.IndentLevel,
-	}
-
-	c.Output = append(c.Output, section)
-	return &c.Output[len(c.Output)-1]
-}
-
-// ============ ==== ======= ==============
-// ============ ==== ======= ==============
 
 func (t *Template) ExprCode(expr string) string {
 	code := ""
