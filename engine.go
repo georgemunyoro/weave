@@ -269,6 +269,6 @@ func RenderFile(filename string, context map[string]interface{}) string {
 	}
 
 	temp := strings.Split(filename, "/")
-	renderFunctionName := "c_render_" + strings.Replace(temp[len(temp)-1], ".", "_", -1)
+	renderFunctionName := "c_render_" + strings.ReplaceAll(temp[len(temp)-1], ".", "_")
 	return RenderTemplateString(string(data), renderFunctionName, context)
 }
