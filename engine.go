@@ -92,10 +92,6 @@ func (t *Template) ExprCode(expr string) string {
 	} else if strings.Contains(expr, ".") {
 		dots := strings.Split(expr, ".")
 		code = t.ExprCode(dots[0])
-		temp := []string{}
-		for i := 1; i < len(dots); i++ {
-			temp = append(temp, fmt.Sprintf("%#v", dots[i]))
-		}
 
 		x := code
 		code = "("
