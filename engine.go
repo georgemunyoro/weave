@@ -259,7 +259,7 @@ func (t *Template) Render(outputFunctionName string) string {
 	return output
 }
 
-func RenderTemplateString(templateString string, renderFunctionName string, context map[string]interface{}) string {
+func RenderTemplateString(templateString, renderFunctionName string, context map[string]interface{}) string {
 	t := Template{
 		Context:        context,
 		TemplateString: templateString,
