@@ -49,10 +49,10 @@ func (c *CodeBuilder) AddSection() *interface{} {
 }
 
 func pop(alist *[]string) string {
-	f := len(*alist)
-	rv := (*alist)[f-1]
-	*alist = append((*alist)[:f-1])
-	return rv
+	listLength := len(*alist)
+	poppedValue := (*alist)[listLength-1]
+	*alist = (*alist)[:listLength-1]
+	return poppedValue
 }
 
 func (t *Template) extractTokens() []string {
