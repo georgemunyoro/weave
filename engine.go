@@ -241,14 +241,12 @@ func (t *Template) Render(outputFunctionName string) string {
 		switch code.Output[i].(type) {
 		case string:
 			output += code.Output[i].(string)
-			break
 		default:
 			var temp *CodeBuilder
 			temp = code.Output[i].(*CodeBuilder)
 			for j := 0; j <= len(temp.Output)-1; j++ {
 				output += (temp.Output[j]).(string) + "\n"
 			}
-			break
 		}
 	}
 
