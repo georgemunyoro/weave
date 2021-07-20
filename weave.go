@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/token"
 	"go/types"
-	"io/ioutil"
 	"log"
 	"regexp"
 	"strings"
@@ -23,12 +22,6 @@ type Node struct {
 	text		string
 	data		string
 	condition	string
-}
-
-func readFile(filename string) string {
-	res, err := ioutil.ReadFile(filename)
-	check(err)
-	return string(res)
 }
 
 func extractTokens(templateString string) []string {
@@ -161,4 +154,8 @@ func calc(c string) string {
 	tv, err := types.Eval(fs, nil, token.NoPos, c)
 	check(err)
 	return tv.Value.String()
+}
+
+func render(t string, c map[string]interface{}) string {
+	return constructSyntaxTree(t).Print(0, c)
 }
