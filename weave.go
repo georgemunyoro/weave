@@ -16,12 +16,12 @@ func check(err error) {
 }
 
 type Node struct {
-	children 	[]Node
-	nodeType 	string
-	varName  	string
-	text		string
-	data		string
-	condition	string
+	children  []Node
+	nodeType  string
+	varName   string
+	text      string
+	data      string
+	condition string
 }
 
 func extractTokens(templateString string) []string {
@@ -156,6 +156,6 @@ func calc(c string) string {
 	return tv.Value.String()
 }
 
-func render(t string, c map[string]interface{}) string {
+func Render(t string, c map[string]interface{}) string {
 	return constructSyntaxTree(t).Print(0, c)
 }
